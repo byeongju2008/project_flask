@@ -8,8 +8,8 @@ def home():
     my_profile = {
         "name": "송병주",
         "age": "18",
-        "school": "종로산업정보학교",
-        "hobby": "게임, 그림, 음악"
+        "email": "byeongju2008@gmail.com",
+        "phone": "N/A",
 
     }
 
