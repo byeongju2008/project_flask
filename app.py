@@ -10,7 +10,7 @@ def home():
         "age": "만17,19세"
     }
     # 이제는 JSON이 아니라 HTML 파일을 보냅니다
-    return render_template('index.html')
+    return render_template('index.html', data=my_profile)
 
 if __name__ == '__main__':
     app.run(debug=True)
