@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>profile</title>
+    <title>음식 목록</title>
 </head>
 <body>
-	<h1>{{ data.name }}</h1>
-	<p>{{ data.age }}세</p>
-	<p>{{ data.email }}</p>
-	<p>{{ data.phone }}</p>
+    <h1>좋아하는 음식 목록</h1>
+
+    <ul>
+        {% for food in data %}
+            <li>{{ food }}</li>
+        {% endfor %}
+    </ul>
 </body>
 </html>
