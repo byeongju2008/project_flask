@@ -1,15 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>음식 목록</title>
+    <title>내 기술 스택</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <h1>좋아하는 음식 목록</h1>
-
-    <ul>
-        {% for food in data %}
-            <li>{{ food }}</li>
+<body class="p-8">
+    <h1 class="text-2xl font-bold mb-4">내 기술 스택</h1>
+    <div class="flex gap-2 flex-wrap">
+        {% for skill in data %}
+            {# Python, Java, PHP, Ruby 중 하나인지 확인 #}
+            {% if skill == "Python" or skill == "Java" or skill == "PHP" or skill == "Ruby" %}
+                <span class="bg-gray-300 px-3 py-1 rounded-full">[BACKEND] {{ skill }}</span>
+            {% elif skill == "SQL" %}
+                <span class="bg-purple-300 px-3 py-1 rounded-full">[DB] {{ skill }}</span>
+            {% elif skill == "JavaScript" or skill == "TypeScript" or skill == "HTML" or skill == "CSS" %}
+                <span class="bg-orange-300 px-3 py-1 rounded-full"> {{ skill }}</span>
+            {% elif skill == "C" or skill == "C++" or skill == "Rust" %}
+                <span class="bg-blue-300 px-3 py-1 rounded-full"> {{ skill }}</span>
+            {% elif skill == "Go" or skill == "Dart" or skill == "Kotlin" or skill == "Swift" or skill == "Bash" or skill == "Shell" or skill == "Markdown" or skill == "R" %}
+                <span class="bg-green-300 px-3 py-1 rounded-full"> {{ skill }}</span>
+            {% else %}
+                <span ></span>
+            {% endif %}
         {% endfor %}
-    </ul>
+    </div>
 </body>
 </html>
