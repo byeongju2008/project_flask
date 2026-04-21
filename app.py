@@ -13,11 +13,32 @@ def send():
     skill = request.form.get('skill')
     level = request.form.get('level')
     status = request.form.get('status')
-    
-    if skill and level and status:
-        messages.append(f"{skill} / {level} / {status}")
-
+    messages.append(status + " / " + level + " / " + skill)
     return redirect('/')
 
-if __name__ == '__main__':
+@app.route('/delete', methods=['POST'])
+def delete():
+    index = int(request.form.get('index'))
+    messages.pop(index)
+    return redirect('/')
+
+@app.route('/delete_all', methods=['POST'])
+def delete_all():
+    messages.clear()
+    return redirect('/')
+
+@app.route('/delete_selected', methods=['POST'])
+def delete_selected():
+    # HTML의 checkbox name인 'delete_indexes'로 매칭
+    indexes = request.form.getlist('delete_indexes')
+    
+    indexes = [int(index) for index in indexes]
+    indexes.sort(reverse=True)
+    
+    for index in indexes:
+        messages.pop(index)
+        
+    return redirect('/')
+
+if __name__ == "__main__":
     app.run(debug=True)
