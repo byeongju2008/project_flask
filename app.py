@@ -13,7 +13,7 @@ def send():
     skill = request.form.get('skill')
     level = request.form.get('level')
     status = request.form.get('status')
-    messages.append(status + " / " + level + " / " + skill)
+    messages.append(skill + " / " + level + " / " + status)
     return redirect('/')
 
 @app.route('/delete', methods=['POST'])
@@ -29,7 +29,6 @@ def delete_all():
 
 @app.route('/delete_selected', methods=['POST'])
 def delete_selected():
-    # HTML의 checkbox name인 'delete_indexes'로 매칭
     indexes = request.form.getlist('delete_indexes')
     
     indexes = [int(index) for index in indexes]
@@ -40,5 +39,22 @@ def delete_selected():
         
     return redirect('/')
 
+@app.route('/edit/<int:index>')
+def edit(index):
+	return render_template('edit.html', index=index, item=messages[index])
+
+@app.route('/update', methods=['POST'])
+def update():
+	index = int(request.form['index'])
+	value = request.form.get('value')
+ 
+	if value.strip()=="":
+		return redirect(f'/edit/{index}')
+
+	if value == messages[index]:
+		return redirect('/')
+
+	messages[index] = value
+	return redirect('/')
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
