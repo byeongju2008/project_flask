@@ -1,19 +1,23 @@
 from flask import Flask, render_template, request, redirect
 
 app = Flask(__name__)
-messages = []
+
+messages = [
+    {"skill": "Python"},
+    {"skill": "HTML"},
+    {"skill": "SQL"}
+]
 
 @app.route('/')
 def home():
-    skills = ["Python", "HTML", "SQL", "Bash"]
-    return render_template('index.html', data=skills, messages=messages)
+    return render_template('index.html', messages=messages)
 
 @app.route('/send', methods=['POST'])
 def send():
-    skill = request.form.get('skill')
-    level = request.form.get('level')
-    status = request.form.get('status')
-    messages.append(skill + " / " + level + " / " + status)
+    skill = request.form.get('skill', '').strip()
+    if not skill:
+        return redirect('/')
+    messages.append({"skill": skill})
     return redirect('/')
 
 @app.route('/delete', methods=['POST'])
@@ -30,13 +34,10 @@ def delete_all():
 @app.route('/delete_selected', methods=['POST'])
 def delete_selected():
     indexes = request.form.getlist('delete_indexes')
-    
     indexes = [int(index) for index in indexes]
     indexes.sort(reverse=True)
-    
     for index in indexes:
         messages.pop(index)
-        
     return redirect('/')
 
 @app.route('/edit/<int:index>')
@@ -51,10 +52,8 @@ def update():
 	if value.strip()=="":
 		return redirect(f'/edit/{index}')
 
-	if value == messages[index]:
-		return redirect('/')
-
-	messages[index] = value
+	messages[index] = {"skill": value}
 	return redirect('/')
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
