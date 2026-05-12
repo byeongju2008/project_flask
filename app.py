@@ -17,7 +17,6 @@ def send():
         messages.append({"skill": skill, "level": level, "status": status})
     return redirect('/')
 
-# 개별 삭제 (버튼 방식 대응)
 @app.route('/delete', methods=['POST'])
 def delete_one():
     index_str = request.form.get('index')
@@ -27,18 +26,15 @@ def delete_one():
             messages.pop(index)
     return redirect('/')
 
-# 선택 삭제
 @app.route('/delete_selected', methods=['POST'])
 def delete_selected():
     indexes = request.form.getlist('delete_indexes')
-    # 큰 인덱스부터 지워야 리스트 순서가 꼬이지 않음
     indexes = sorted([int(i) for i in indexes], reverse=True)
     for index in indexes:
         if 0 <= index < len(messages):
             messages.pop(index)
     return redirect('/')
 
-# 전체 삭제
 @app.route('/delete_all', methods=['POST'])
 def delete_all():
     messages.clear()
