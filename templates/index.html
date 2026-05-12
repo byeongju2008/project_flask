@@ -4,67 +4,66 @@
     <title>내 기술 스택</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="p-8">
+<body class="p-8 bg-gray-50">
     <h1 class="text-2xl font-bold mb-4">내 기술 스택</h1>
 
-    <form action="/send" method="POST">
-        <input type="text" name="skill" placeholder="기술명(Skill)">
-        <button type="submit">전송</button>
+    <!-- 데이터 입력 폼 -->
+    <form action="/send" method="POST" class="mb-8 flex flex-col gap-3 items-start bg-white p-6 rounded-lg shadow-sm border">
+        <input type="text" name="skill" placeholder="기술명(Skill)" class="border px-3 py-2 rounded w-full" required>
+        <input type="text" name="level" placeholder="난이도(Level)" class="border px-3 py-2 rounded w-full" required>
+        <input type="text" name="status" placeholder="상태(Status)" class="border px-3 py-2 rounded w-full" required>
+        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 font-bold w-fit transition">
+            추가
+        </button>
     </form>
 
     <h2 class="text-xl font-bold mb-3">입력한 데이터</h2>
-   
-    {% for item in messages %}
-	<p>{{ item["skill"] }}</p>
-    {% endfor %}
 
-</body>
-</html>
-    <div>
-        <h2 class="mt-9 text-xl font-bold">입력한 데이터</h2>
-        {% for item in messages %}
-            <div class="bg-yellow-200 p-2 m-2 rounded flex justify-between items-center">
-               <span>{{ item }}</span> 
-            </div>
-        {% endfor %}
-        <form action="/delete_all" method="post" class="inline">
-            <button type="submit" class="bg-black text-white px-4 py-2 rounded m-2">
-                전체 삭제
-             </button>
-        </form>
-        <form action="/delete_selected" method="post">
+    {% if messages %}
+    <form action="/delete_selected" method="post">
+        <div class="border rounded-lg divide-y overflow-hidden shadow-sm bg-white">
             {% for item in messages %}
-                <div class="bg-yellow-200 p-2 m-2 rounded flex justify-between items-center">
-                    <span>{{ item }}</span>		
+            <div class="p-4 flex justify-between items-center hover:bg-gray-50 transition">
+                <div class="flex items-center gap-3">
+                    <!-- name="delete_indexes" 로 서버와 통신 -->
+                    <input type="checkbox" name="delete_indexes" value="{{ loop.index0 }}" class="w-4 h-4 cursor-pointer">
                     <div>
-                        <form action="/delete" method="post" style="display:inline;">
-                            <input type="hidden" name="index" value="{{ loop.index0 }}">
-                            <button type="submit" class="ml-2 bg-red-500 text-white px-3 py-1 rounded" 
-                                    onclick="return confirm('정말 삭제할까요?')">  
-                                삭제
-                            </button>
-                        </form>		
-                        <form action="/edit/{{ loop.index0 }}" method="get" style="display:inline;">
-                            <button type="submit" class="ml-2 bg-blue-500 text-white px-3 py-1 rounded">
-                                수정
-                            </button>
-                        </form>			
-                    </div>		
+                        <span class="font-bold text-lg text-gray-800">{{ item['skill'] }}</span>
+                        <span class="text-sm text-gray-500 ml-2">({{ item['level'] }} / {{ item['status'] }})</span>
+                    </div>
                 </div>
+
+                <!-- 개별 삭제 버튼 -->
+                <button type="submit" formaction="/delete" name="index" value="{{ loop.index0 }}"
+                        class="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600 transition"
+                        onclick="return confirm('이 항목을 삭제할까요?')">
+                    삭제
+                </button>
+            </div>
             {% endfor %}
-            
-            <button type="submit" class="ml-2 bg-red-500 text-white px-4 py-2 rounded">
+        </div>
+
+        <div class="mt-4 flex gap-2">
+            <!-- 이미지처럼 확인창 띄우기: onclick 추가 -->
+            <button type="submit" 
+                    class="bg-orange-600 text-white px-4 py-2 rounded shadow hover:bg-orange-700 font-bold transition"
+                    onclick="return confirm('선택한 데이터를 삭제할까요?')">
                 선택 삭제
             </button>
-        </form>
-    </div>
-
-
-    <form action="/send" method="POST" class="mt-8 flex gap-2">
-        <input type="text" name="skill" placeholder="기술명(Skill)" class="border px-3 py-2 rounded">
-        <input type="text" name="level" placeholder="난이도(Level)" class="border px-3 py-2 rounded">
-        <input type="text" name="status" placeholder="학습 여부(Status)" class="border px-3 py-2 rounded">
-        <button type="submit" class="bg-black text-white px-4 py-2 rounded">전송</button>
     </form>
+
+            <form action="/delete_all" method="post">
+                <button type="submit" class="bg-red-800 text-white px-4 py-2 rounded shadow hover:bg-red-900 font-bold transition"
+                        onclick="return confirm('모든 데이터를 삭제하시겠습니까?')">
+                    전체 삭제
+                </button>
+            </form>
+        </div>
+    {% else %}
+    <div class="p-8 border-2 border-dashed border-gray-200 text-center rounded bg-white text-gray-400 italic">
+        표시할 데이터가 없습니다.
+    </div>
+    {% endif %}
+
 </body>
 </html>

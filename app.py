@@ -2,11 +2,7 @@ from flask import Flask, render_template, request, redirect
 
 app = Flask(__name__)
 
-messages = [
-    {"skill": "Python"},
-    {"skill": "HTML"},
-    {"skill": "SQL"}
-]
+messages = []
 
 @app.route('/')
 def home():
@@ -15,45 +11,38 @@ def home():
 @app.route('/send', methods=['POST'])
 def send():
     skill = request.form.get('skill', '').strip()
-    if not skill:
-        return redirect('/')
-    messages.append({"skill": skill})
+    level = request.form.get('level', '').strip()
+    status = request.form.get('status', '').strip()
+    if skill and level and status:
+        messages.append({"skill": skill, "level": level, "status": status})
     return redirect('/')
 
+# 개별 삭제 (버튼 방식 대응)
 @app.route('/delete', methods=['POST'])
-def delete():
-    index = int(request.form.get('index'))
-    messages.pop(index)
+def delete_one():
+    index_str = request.form.get('index')
+    if index_str is not None:
+        index = int(index_str)
+        if 0 <= index < len(messages):
+            messages.pop(index)
     return redirect('/')
 
+# 선택 삭제
+@app.route('/delete_selected', methods=['POST'])
+def delete_selected():
+    indexes = request.form.getlist('delete_indexes')
+    # 큰 인덱스부터 지워야 리스트 순서가 꼬이지 않음
+    indexes = sorted([int(i) for i in indexes], reverse=True)
+    for index in indexes:
+        if 0 <= index < len(messages):
+            messages.pop(index)
+    return redirect('/')
+
+# 전체 삭제
 @app.route('/delete_all', methods=['POST'])
 def delete_all():
     messages.clear()
     return redirect('/')
 
-@app.route('/delete_selected', methods=['POST'])
-def delete_selected():
-    indexes = request.form.getlist('delete_indexes')
-    indexes = [int(index) for index in indexes]
-    indexes.sort(reverse=True)
-    for index in indexes:
-        messages.pop(index)
-    return redirect('/')
-
-@app.route('/edit/<int:index>')
-def edit(index):
-	return render_template('edit.html', index=index, item=messages[index])
-
-@app.route('/update', methods=['POST'])
-def update():
-	index = int(request.form['index'])
-	value = request.form.get('value')
- 
-	if value.strip()=="":
-		return redirect(f'/edit/{index}')
-
-	messages[index] = {"skill": value}
-	return redirect('/')
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)
