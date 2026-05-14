@@ -1,25 +1,65 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>수정하기</title>
-<script src="https://cdn.tailwindcss.com"></script>
+    <title>수정하기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="p-8">
-	<h1 class="text-2xl font-bold mb-4">{{ index + 1 }}번째 데이터 수정 중</h1>	
+<body class="p-8 bg-gray-50 min-h-screen">
+    
+    <h1 class="text-2xl font-bold mb-6 text-gray-800">
+        {{ index + 1 }}번째 데이터 수정
+    </h1>
 
-	<form action="/update" method="post" class="space-y-3">
-		<input type="hidden" name="index" value="{{ index }}">	
-		
-		<p class="mb-2 text-gray-700">
-			현재 값: {{ item }}
-		</p>
+    <form action="/update/{{ index }}" method="POST" class="w-full bg-white p-6 rounded-lg shadow-sm border space-y-4">
+        <div>
+            <label class="block mb-1.5 font-bold text-sm text-gray-700">기술명</label>
+            <input
+                type="text"
+                name="skill"
+                value="{{ item['skill'] }}"
+                class="border border-gray-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                required
+            >
+        </div>
 
-		<input type="text" name="value" class="border px-3 py-2 rounded w-full">	
+        <div>
+            <label class="block mb-1.5 font-bold text-sm text-gray-700">수준</label>
+            <input
+                type="text"
+                name="level"
+                value="{{ item['level'] }}"
+                class="border border-gray-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                required
+            >
+        </div>
 
-		<button type="submit" class="bg-black text-white px-4 py-2 rounded">
-	    저장
-		</button>
-	</form>	
-	<a href="/" class="inline-block mt-4 text-blue-600">돌아가기</a>
+        <div>
+            <label class="block mb-1.5 font-bold text-sm text-gray-700">학습 상태</label>
+            <input
+                type="text"
+                name="status"
+                value="{{ item['status'] }}"
+                class="border border-gray-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                required
+            >
+        </div>
+
+        <div class="pt-2 flex gap-3">
+            <button
+                type="submit"
+                class="bg-green-500 text-white px-5 py-2 rounded font-bold hover:bg-green-600 transition shadow-sm"
+            >
+                수정 완료
+            </button>
+            
+            <a 
+                href="/" 
+                class="bg-gray-100 text-gray-700 px-5 py-2 rounded font-bold hover:bg-gray-200 transition border border-gray-200 text-center"
+            >
+                취소
+            </a>
+        </div>
+    </form>
+
 </body>
 </html>
