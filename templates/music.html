@@ -1,4 +1,4 @@
-<!-- fixed로 화면에 고정, 아무 데나 만져서 드래그되는 현상 방지 -->
+<!-- fixed로 화면에 고정, 무선 이어폰 동기화 및 드래그 시 축소 현상 전면 차단 완료 버전 -->
 <div id="draggable-player" class="player-minimized fixed bottom-8 right-8 overflow-hidden shadow-2xl border border-cyan-500/20 bg-black/40 backdrop-blur-md z-50 select-none transition-all duration-500 ease-in-out group rounded-full w-[128px] h-[128px] aspect-1/1">
     <style>
         @keyframes spin-disk {
@@ -19,16 +19,27 @@
             border-radius: 1rem !important;
             aspect-ratio: 16/10 !important;
         }
-        /* 일반 호버 상태 레이아웃 변화 */
-        #draggable-player:not(.is-pinned):hover #disk-wrapper {
+        /* 💡 드래그 중(is-dragging)일 때는 마우스가 밖으로 튀어도 강제로 와이드 창 형태 유지하여 축소 차단 */
+        #draggable-player.is-dragging {
+            width: 448px !important;
+            height: 280px !important;
+            border-radius: 1rem !important;
+            aspect-ratio: 16/10 !important;
+        }
+
+        /* 일반 호버 상태 및 드래그 중 레이아웃 유지 */
+        #draggable-player:not(.is-pinned):hover #disk-wrapper,
+        #draggable-player.is-dragging #disk-wrapper {
             padding: 24px !important;
             padding-bottom: 128px !important;
         }
-        #draggable-player:not(.is-pinned):hover #inner-disk {
+        #draggable-player:not(.is-pinned):hover #inner-disk,
+        #draggable-player.is-dragging #inner-disk {
             box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
             border-width: 1px;
         }
-        #draggable-player:not(.is-pinned):hover #player-content-layer {
+        #draggable-player:not(.is-pinned):hover #player-content-layer,
+        #draggable-player.is-dragging #player-content-layer {
             opacity: 1 !important;
             pointer-events: auto !important;
         }
@@ -64,7 +75,7 @@
     
     <!-- 플레이어 UI 레이아웃 -->
     <div id="player-content-layer" class="absolute inset-0 flex flex-col justify-between p-6 opacity-0 pointer-events-none transition-opacity duration-300 delay-100">
-        <!-- 상단 제목 바 및 우측 제어 시스템 포트 (축소 버튼 빼기 반영) -->
+        <!-- 상단 제목 바 및 우측 제어 시스템 포트 -->
         <div class="flex justify-between items-center">
             <p class="text-sm font-bold text-white tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] pointer-events-none">Yesterday</p>
             <div class="flex items-center gap-2">
@@ -102,7 +113,7 @@
                 <button class="text-cyan-400/60 hover:text-cyan-300 transition"><svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg></button>
             </div>
             
-            <!-- 💡 우하단 빗금 스타일 드래그 핸들 무늬 (여기를 만져야만 드래그 가능하도록 설정) -->
+            <!-- 우하단 빗금 스타일 드래그 핸들 무늬 -->
             <div id="drag-handle" class="absolute bottom-1.5 right-1.5 w-4 h-4 flex flex-col justify-end items-end gap-[2px] opacity-40 hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing z-30" style="margin: 0; padding: 0;">
                 <div class="flex gap-[2px]"><span class="w-[2px] h-[2px] bg-cyan-300 rounded-full"></span></div>
                 <div class="flex gap-[2px]"><span class="w-[2px] h-[2px] bg-cyan-300 rounded-full"></span><span class="w-[2px] h-[2px] bg-cyan-300 rounded-full"></span></div>
@@ -117,7 +128,7 @@
     </audio>
 </div>
 
-<!-- 플레이어 제어 및 전용 마크 드래그 핸들러 스크립트 -->
+<!-- 플레이어 제어 및 무선 이어폰 동기화, 호버 드래그 잠금 스크립트 -->
 <script>
     const audio = document.getElementById('main-audio');
     const playBtn = document.getElementById('play-btn');
@@ -138,7 +149,7 @@
     audio.volume = 0.5; 
     let isPinned = false;
 
-    // 💡 [핵심 추가] 이어폰 제어와 화면 버튼의 UI 상태를 일치시키는 통합 상태 변화 함수
+    // 통합 UI 상태 동기화 매핑 함수
     function syncPlayerUI(isPlaying) {
         if (isPlaying) {
             playIcon.classList.add('hidden');
@@ -151,25 +162,14 @@
         }
     }
 
-    // 💡 [핵심 추가] 무선 이어폰 하드웨어 신호(Media Session API) 실시간 감지 및 동기화
+    // 무선 이어폰 및 하드웨어 미디어 세션 연동 연동
     if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
             title: 'Yesterday',
             artist: '내 기술 스택 배경음악'
         });
-
-        // 이어폰으로 [재생]을 눌렀을 때
-        navigator.mediaSession.setActionHandler('play', () => {
-            audio.play().then(() => {
-                syncPlayerUI(true);
-            });
-        });
-
-        // 이어폰으로 [일시정지]를 눌렀을 때
-        navigator.mediaSession.setActionHandler('pause', () => {
-            audio.pause();
-            syncPlayerUI(false);
-        });
+        navigator.mediaSession.setActionHandler('play', () => { audio.play().then(() => syncPlayerUI(true)); });
+        navigator.mediaSession.setActionHandler('pause', () => { audio.pause(); syncPlayerUI(false); });
     }
 
     // 고정 장치 토글 핸들러
@@ -190,7 +190,7 @@
         }
     });
 
-    // 드래그 제어 매핑 파트
+    // 60Hz 보정 고성능 드래그 감도 최적화 커널
     let isDragging = false;
     let offsetX = 0;
     let offsetY = 0;
@@ -199,6 +199,9 @@
 
     dragHandle.addEventListener('mousedown', (e) => {
         isDragging = true;
+        // 💡 드래그가 시작되면 강제로 is-dragging 클래스를 추가해 마우스 포인터 이탈 시 창 닫힘 원천 봉쇄
+        player.classList.add('is-dragging');
+        
         offsetX = e.clientX - player.getBoundingClientRect().left;
         offsetY = e.clientY - player.getBoundingClientRect().top;
         
@@ -230,24 +233,21 @@
     document.addEventListener('mouseup', () => {
         if (!isDragging) return;
         isDragging = false;
+        // 💡 드래그 해제 시 클래스를 빼주어 정상적인 마우스 호버 축소/확장 메커니즘으로 환원
+        player.classList.remove('is-dragging');
         player.style.transition = 'width 0.5s ease-in-out, height 0.5s ease-in-out, border-radius 0.5s ease-in-out, aspect-ratio 0.5s ease-in-out, background-color 0.3s, backdrop-filter 0.3s';
     });
 
-    // 화면의 메인 플레이 버튼 클릭 인터랙션
+    // 메인 재생 버튼 인터랙션 리스너
     playBtn.addEventListener('click', () => {
         if (audio.paused) {
-            audio.play().then(() => {
-                syncPlayerUI(true);
-            }).catch(error => {
-                console.log("재생 오류 발생: ", error);
-            });
+            audio.play().then(() => syncPlayerUI(true)).catch(error => console.log(error));
         } else {
             audio.pause();
             syncPlayerUI(false);
         }
     });
 
-    // 💡 [보완] 브라우저 자체 시스템이나 외부 앱 간섭으로 오디오가 멈추거나 켜질 때의 백업 이벤트 리스너 추가
     audio.addEventListener('play', () => syncPlayerUI(true));
     audio.addEventListener('pause', () => syncPlayerUI(false));
 
