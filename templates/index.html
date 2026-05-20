@@ -4,14 +4,32 @@
     <title>내 기술 스택</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="p-8 bg-gray-50">
+<body class="p-8">
     <h1 class="text-2xl font-bold mb-4">내 기술 스택</h1>
 
-    <form action="/send" method="POST" class="mb-8 flex flex-col gap-3 items-start bg-white p-6 rounded-lg shadow-sm border">
-        <input type="text" name="skill" placeholder="기술명(Skill)" class="border px-3 py-2 rounded w-full" required>
-        <input type="text" name="level" placeholder="난이도(Level)" class="border px-3 py-2 rounded w-full" required>
-        <input type="text" name="status" placeholder="상태(Status)" class="border px-3 py-2 rounded w-full" required>
-        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 font-bold w-fit transition">
+    <form action="/send" method="POST" class="mb-6 space-y-2">
+        <input
+            type="text"
+            name="skill"
+            placeholder="기술명 예: Python"
+            class="border px-3 py-2 rounded w-full"
+        >
+        <input
+            type="text"
+            name="level"
+            placeholder="수준 예: 상, 중, 하"
+            class="border px-3 py-2 rounded w-full"
+        >
+        <input
+            type="text"
+            name="status"
+            placeholder="상태 예: 공부중, 복습필요, 완료"
+            class="border px-3 py-2 rounded w-full"
+        >
+        <button
+            type="submit"
+            class="bg-blue-500 text-white px-4 py-2 rounded"
+        >
             추가
         </button>
     </form>
@@ -19,56 +37,68 @@
     <h2 class="text-xl font-bold mb-3">입력한 데이터</h2>
 
     {% if messages %}
-    <form action="/delete_selected" method="post">
-        <div class="border rounded-lg divide-y overflow-hidden shadow-sm bg-white">
+    <form id="delete-selected-form" action="/delete_selected" method="POST">
+        <div class="space-y-2">
             {% for item in messages %}
-            <div class="p-4 flex justify-between items-center hover:bg-gray-50 transition">
-                <div class="flex items-center gap-3">
-                    <input type="checkbox" name="delete_indexes" value="{{ loop.index0 }}" class="w-4 h-4 cursor-pointer">
-                    <div>
-                        <span class="font-bold text-lg text-gray-800">{{ item['skill'] }}</span>
-                        <span class="text-sm text-gray-500 ml-2">({{ item['level'] }} / {{ item['status'] }})</span>
+                <div class="border p-3 rounded flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <input
+                            type="checkbox"
+                            name="selected_ids"
+                            value="{{ item['id'] }}"
+                        >
+                        <div>
+                            <p class="font-bold">
+                                #{{ item["id"] }} {{ item["skill"] }}
+                            </p>
+                            <p class="text-sm text-gray-600">
+                                수준: {{ item["level"] }} / 상태: {{ item["status"] }}
+                            </p>
+                        </div>
                     </div>
-                </div>
 
-                <!-- 수정 및 삭제 버튼 영역 -->
-                <div class="flex gap-2 text-xs font-medium">
+                    <div class="flex gap-2">
                     <a
-                        href="/edit/{{ loop.index0 }}"
-                        class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition flex items-center"
+                        href="/edit/{{ item['id'] }}"
+                        class="bg-green-500 text-white px-3 py-1 rounded text-center inline-block"
                     >
                         수정
                     </a>
-
-                    <button
-                        type="submit"
-                        formaction="/delete/{{ loop.index0 }}"
-                        formmethod="POST"
-                        class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
-                        onclick="return confirm('정말 삭제할까요?')"
-                    >
-                        삭제
-                    </button>
+                        <button
+                            type="submit"
+                            formaction="/delete/{{ item['id'] }}"
+                            formmethod="POST"
+                            class="bg-red-500 text-white px-3 py-1 rounded"
+                            onclick="return confirm('정말 삭제할까요?')"
+                        >
+                            삭제
+                        </button>
+                    </div>
                 </div>
-            </div>
             {% endfor %}
         </div>
-
-        <div class="mt-4 flex gap-2">
-            <button type="submit" 
-                    class="bg-orange-600 text-white px-4 py-2 rounded shadow hover:bg-orange-700 font-bold transition"
-                    onclick="return confirm('선택한 데이터를 삭제할까요?')">
-                선택 삭제
-            </button>
     </form>
 
-            <form action="/delete_all" method="post">
-                <button type="submit" class="bg-red-800 text-white px-4 py-2 rounded shadow hover:bg-red-900 font-bold transition"
-                        onclick="return confirm('모든 데이터를 삭제하시겠습니까?')">
-                    전체 삭제
-                </button>
-            </form>
-        </div>
+    <div class="flex gap-2 mt-4">
+        <button
+            type="submit"
+            form="delete-selected-form"
+            class="bg-orange-500 text-white px-4 py-2 rounded"
+            onclick="return confirm('선택한 데이터를 삭제할까요?')"
+        >
+            선택 삭제
+        </button>
+
+        <form action="/delete_all" method="POST">
+            <button
+                type="submit"
+                class="bg-red-700 text-white px-4 py-2 rounded"
+                onclick="return confirm('모든 데이터를 삭제할까요?')"
+            >
+                전체 삭제
+            </button>
+        </form>
+    </div>
     {% else %}
     <div class="p-8 border-2 border-dashed border-gray-200 text-center rounded bg-white text-gray-400 italic">
         표시할 데이터가 없습니다.

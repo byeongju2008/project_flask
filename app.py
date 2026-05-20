@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, redirect
 app = Flask(__name__)
 
 messages = []
+next_id = 1
 
 @app.route('/')
 def home():
@@ -10,29 +11,33 @@ def home():
 
 @app.route('/send', methods=['POST'])
 def send():
+    global next_id
+
     skill = request.form.get('skill', '').strip()
     level = request.form.get('level', '').strip()
     status = request.form.get('status', '').strip()
-    if skill and level and status:
-        messages.append({"skill": skill, "level": level, "status": status})
+
+    if not skill or not level or not status:
+        return redirect('/')
+
+    messages.append({
+        "id": next_id,
+        "skill": skill,
+        "level": level,
+        "status": status
+    })
+
+    next_id += 1
+
     return redirect('/')
 
-@app.route('/delete', methods=['POST'])
-def delete_one():
-    index_str = request.form.get('index')
-    if index_str is not None:
-        index = int(index_str)
-        if 0 <= index < len(messages):
-            messages.pop(index)
-    return redirect('/')
+@app.route('/delete/<int:item_id>', methods=['POST'])
+def delete(item_id):
+    for item in messages:
+        if item["id"] == item_id:
+            messages.remove(item)
+            break
 
-@app.route('/delete_selected', methods=['POST'])
-def delete_selected():
-    indexes = request.form.getlist('delete_indexes')
-    indexes = sorted([int(i) for i in indexes], reverse=True)
-    for index in indexes:
-        if 0 <= index < len(messages):
-            messages.pop(index)
     return redirect('/')
 
 @app.route('/delete_all', methods=['POST'])
@@ -40,18 +45,46 @@ def delete_all():
     messages.clear()
     return redirect('/')
 
-@app.route('/edit/<int:index>')
-def edit(index):
-    if index < 0 or index >= len(messages):
+@app.route('/delete_selected', methods=['POST'])
+def delete_selected():
+    selected_ids = request.form.getlist('selected_ids')
+    remaining_messages = []
+
+    for item in messages:
+        if str(item["id"]) not in selected_ids:
+            remaining_messages.append(item)
+
+    messages.clear()
+
+    for item in remaining_messages:
+        messages.append(item)
+
+    return redirect('/')
+
+@app.route('/edit/<int:item_id>')
+def edit(item_id):
+    target_item = None
+
+    for item in messages:
+        if item["id"] == item_id:
+            target_item = item
+            break
+
+    if target_item is None:
         return redirect('/')
 
-    item = messages[index]
+    return render_template('edit.html', item=target_item)
 
-    return render_template('edit.html', item=item, index=index)
+@app.route('/update/<int:item_id>', methods=['POST'])
+def update(item_id):
+    target_item = None
 
-@app.route('/update/<int:index>', methods=['POST'])
-def update(index):
-    if index < 0 or index >= len(messages):
+    for item in messages:
+        if item["id"] == item_id:
+            target_item = item
+            break
+
+    if target_item is None:
         return redirect('/')
 
     skill = request.form.get('skill', '').strip()
@@ -59,13 +92,11 @@ def update(index):
     status = request.form.get('status', '').strip()
 
     if not skill or not level or not status:
-        return redirect(f'/edit/{index}')
+        return redirect(f'/edit/{item_id}')
 
-    messages[index] = {
-        "skill": skill,
-        "level": level,
-        "status": status
-    }
+    target_item["skill"] = skill
+    target_item["level"] = level
+    target_item["status"] = status
 
     return redirect('/')
 

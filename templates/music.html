@@ -1,284 +1,665 @@
-<!-- fixed로 화면에 고정, 무선 이어폰 동기화 및 드래그 시 축소 현상 전면 차단 완료 버전 -->
-<div id="draggable-player" class="player-minimized fixed bottom-8 right-8 overflow-hidden shadow-2xl border border-cyan-500/20 bg-black/40 backdrop-blur-md z-50 select-none transition-all duration-500 ease-in-out group rounded-full w-[128px] h-[128px] aspect-1/1">
-    <style>
-        @keyframes spin-disk {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        .animate-spin-disk {
-            animation: spin-disk 15s linear infinite;
-        }
-        .animate-pause {
-            animation-play-state: paused;
-        }
-        
-        /* 고정 해제(일반) 상태일 때만 호버 시 확장 작동 */
-        #draggable-player.player-minimized:not(.is-pinned):hover {
-            width: 448px !important;
-            height: 280px !important;
-            border-radius: 1rem !important;
-            aspect-ratio: 16/10 !important;
-        }
-        /* 💡 드래그 중(is-dragging)일 때는 마우스가 밖으로 튀어도 강제로 와이드 창 형태 유지하여 축소 차단 */
-        #draggable-player.is-dragging {
-            width: 448px !important;
-            height: 280px !important;
-            border-radius: 1rem !important;
-            aspect-ratio: 16/10 !important;
-        }
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music Player</title>
+</head>
+<body>
 
-        /* 일반 호버 상태 및 드래그 중 레이아웃 유지 */
-        #draggable-player:not(.is-pinned):hover #disk-wrapper,
-        #draggable-player.is-dragging #disk-wrapper {
-            padding: 24px !important;
-            padding-bottom: 128px !important;
-        }
-        #draggable-player:not(.is-pinned):hover #inner-disk,
-        #draggable-player.is-dragging #inner-disk {
-            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-            border-width: 1px;
-        }
-        #draggable-player:not(.is-pinned):hover #player-content-layer,
-        #draggable-player.is-dragging #player-content-layer {
-            opacity: 1 !important;
-            pointer-events: auto !important;
-        }
+<div id="dp" class="fixed bottom-8 right-8 z-50 select-none">
+<style>
+#dp{
+  width:96px;
+  height:96px;
+  border-radius:50%;
+  overflow:hidden;
+  position:fixed;
+  background:rgba(12,12,20,.82);
+  backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 10px 35px rgba(0,0,0,.28);
+  transition:
+    width .45s cubic-bezier(.4,0,.2,1),
+    height .45s cubic-bezier(.4,0,.2,1),
+    border-radius .45s cubic-bezier(.4,0,.2,1);
+}
 
-        /* 완전히 고정된(is-pinned) 상태의 UI 강제 지정 클래스 */
-        #draggable-player.is-pinned {
-            width: 448px !important;
-            height: 280px !important;
-            border-radius: 1rem !important;
-            aspect-ratio: 16/10 !important;
-        }
-        #draggable-player.is-pinned #disk-wrapper {
-            padding: 24px !important;
-            padding-bottom: 128px !important;
-        }
-        #draggable-player.is-pinned #inner-disk {
-            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-            border-width: 1px;
-        }
-        #draggable-player.is-pinned #player-content-layer {
-            opacity: 1 !important;
-            pointer-events: auto !important;
-        }
-    </style>
+/* LIGHT THEME */
+#dp.light{
+  background:rgba(250,250,252,.9);
+  border:1px solid rgba(0,0,0,.08);
+  box-shadow:0 10px 35px rgba(0,0,0,.08);
+}
 
-    <!-- 중앙 배치된 원형 디스크 -->
-    <div id="disk-wrapper" class="absolute inset-0 flex items-center justify-center p-0 pb-0 pointer-events-none transition-all duration-500 ease-in-out">
-        <div id="inner-disk" class="w-32 h-32 relative rounded-full border-0 border-cyan-500/40 shadow-none overflow-hidden bg-black flex items-center justify-center transition-all duration-500 ease-in-out">
-            <img id="album-disk" src="/static/yesterday.webp" alt="Cover" class="w-full h-full object-cover rounded-full animate-spin-disk animate-pause">
-            <div class="absolute w-4 h-4 rounded-full bg-black border border-white/20 shadow-inner z-20"></div>
-        </div>
-    </div>
-    
-    <!-- 플레이어 UI 레이아웃 -->
-    <div id="player-content-layer" class="absolute inset-0 flex flex-col justify-between p-6 opacity-0 pointer-events-none transition-opacity duration-300 delay-100">
-        <!-- 상단 제목 바 및 우측 제어 시스템 포트 -->
-        <div class="flex justify-between items-center">
-            <p class="text-sm font-bold text-white tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] pointer-events-none">Yesterday</p>
-            <div class="flex items-center gap-2">
-                <span id="music-time" class="text-xs text-cyan-300 font-mono bg-black/50 px-2 py-0.5 rounded border border-cyan-500/30 backdrop-blur-sm pointer-events-none">00:00</span>
-                
-                <!-- 창 고정/해제 토글 버튼 (핀 아이콘) -->
-                <button id="pin-toggle-btn" class="text-gray-400 hover:text-cyan-300 transition p-1 rounded-md hover:bg-white/10" title="창 고정/해제">
-                    <svg id="pin-unpinned-icon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                    </svg>
-                    <svg id="pin-pinned-icon" class="w-4 h-4 text-cyan-400 hidden" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"></path>
-                    </svg>
-                </button>
-            </div>
-        </div>
+/* MINI */
+#dp-mini{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:1;
+  transition:opacity .25s;
+  pointer-events:none;
+}
 
-        <!-- 하단 반투명 컨트롤러 레이어 -->
-        <div class="space-y-4 bg-black/20 p-4 border border-white/5 shadow-lg mt-auto rounded-xl relative">
-            <div class="relative w-full h-1 bg-white/20 rounded-full cursor-pointer group/progress" id="progress-container">
-                <div id="progress-bar" class="absolute top-0 left-0 h-full bg-cyan-400 rounded-full w-0 transition-all duration-100"></div>
-                <div id="progress-dot" class="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-cyan-300 rounded-full opacity-0 group-hover/progress:opacity-100 transition-opacity shadow-[0_0_8px_#22d3ee]" style="left: 0%;"></div>
-            </div>
+#dp.expanded{
+  width:278px;
+  height:318px;
+  border-radius:26px;
+  overflow:visible;
+}
 
-            <div class="flex items-center justify-between px-2">
-                <button class="text-cyan-400/60 hover:text-cyan-300 transition"><svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.38 12.18l-1.42 1.42 3.13 3.14L14.5 20H20v-5.5l-2.04 2.04-3.08-3.06z"/></svg></button>
-                <button class="text-cyan-400/80 hover:text-cyan-300 transition"><svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
-                
-                <button id="play-btn" class="w-12 h-12 rounded-full bg-cyan-400/30 text-cyan-300 flex items-center justify-center transition hover:bg-cyan-400/50 hover:scale-105 active:scale-95 border border-cyan-400/40 shadow-[0_0_15px_rgba(34,211,238,0.2)]">
-                    <svg id="play-icon" class="w-6 h-6 fill-current ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                    <svg id="pause-icon" class="w-6 h-6 fill-current hidden" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                </button>
-                
-                <button class="text-cyan-400/80 hover:text-cyan-300 transition"><svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M7 18l8.5-6L7 6v12zm9-12v12h2V6h-2z"/></svg></button>
-                <button class="text-cyan-400/60 hover:text-cyan-300 transition"><svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg></button>
-            </div>
-            
-            <!-- 우하단 빗금 스타일 드래그 핸들 무늬 -->
-            <div id="drag-handle" class="absolute bottom-1.5 right-1.5 w-4 h-4 flex flex-col justify-end items-end gap-[2px] opacity-40 hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing z-30" style="margin: 0; padding: 0;">
-                <div class="flex gap-[2px]"><span class="w-[2px] h-[2px] bg-cyan-300 rounded-full"></span></div>
-                <div class="flex gap-[2px]"><span class="w-[2px] h-[2px] bg-cyan-300 rounded-full"></span><span class="w-[2px] h-[2px] bg-cyan-300 rounded-full"></span></div>
-                <div class="flex gap-[2px]"><span class="w-[2px] h-[2px] bg-cyan-300 rounded-full"></span><span class="w-[2px] h-[2px] bg-cyan-300 rounded-full"></span><span class="w-[2px] h-[2px] bg-cyan-300 rounded-full"></span></div>
-            </div>
-        </div>
-    </div>
+#dp.expanded #dp-mini{
+  opacity:0;
+}
 
-    <!-- 내부 음원 코어 노드 -->
-    <audio id="main-audio" preload="auto">
-        <source src="/static/yesterday.mp3" type="audio/mpeg">
-    </audio>
+/* FULL */
+#dp-full{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .28s .05s;
+  display:flex;
+  flex-direction:column;
+  border-radius:26px;
+  overflow:hidden;
+}
+
+#dp.expanded #dp-full{
+  opacity:1;
+  pointer-events:auto;
+}
+
+/* DISK */
+.dp-disk{
+  position:relative;
+  border-radius:50%;
+  overflow:hidden;
+  background:#181824;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+}
+
+#mini-disk{
+  width:68px;
+  height:68px;
+}
+
+#big-disk{
+  width:108px;
+  height:108px;
+  border:1px solid rgba(255,255,255,.08);
+}
+
+#dp.light #big-disk{
+  border-color:rgba(0,0,0,.08);
+}
+
+.dp-disk::after{
+  content:'';
+  position:absolute;
+  width:13px;
+  height:13px;
+  border-radius:50%;
+  background:#0f0f15;
+  border:1px solid rgba(255,255,255,.08);
+  z-index:2;
+}
+
+#dp.light .dp-disk::after{
+  background:#e8e8f0;
+  border-color:rgba(0,0,0,.08);
+}
+
+.dp-img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:50%;
+}
+
+/* SPIN */
+@keyframes dp-spin{
+  from{transform:rotate(0deg);}
+  to{transform:rotate(360deg);}
+}
+
+.dp-spin{
+  animation:dp-spin 9s linear infinite;
+}
+
+.dp-spin.dp-paused{
+  animation-play-state:paused;
+}
+
+/* TOP */
+#dp-top{
+  padding:12px 12px 0;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-shrink:0;
+}
+
+#dp-name{
+  font-size:9.5px;
+  letter-spacing:.07em;
+  color:rgba(255,255,255,.45);
+  border:1px solid rgba(255,255,255,.09);
+  background:rgba(255,255,255,.06);
+  padding:5px 10px;
+  border-radius:999px;
+  font-family:monospace;
+  max-width:130px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+#dp.light #dp-name{
+  color:rgba(0,0,0,.42);
+  border-color:rgba(0,0,0,.08);
+  background:rgba(0,0,0,.04);
+}
+
+/* ACTIONS */
+#dp-top-actions{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.dp-icon-btn{
+  width:26px;
+  height:26px;
+  border:none;
+  background:none;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  padding:0;
+  flex-shrink:0;
+  color:rgba(255,255,255,.38);
+  transition:color .18s;
+}
+
+#dp.light .dp-icon-btn{
+  color:rgba(0,0,0,.36);
+}
+
+.dp-icon-btn:hover{
+  color:rgba(255,255,255,.9);
+}
+
+#dp.light .dp-icon-btn:hover{
+  color:rgba(0,0,0,.9);
+}
+
+.dp-icon-btn.active{
+  color:#fff;
+}
+
+#dp.light .dp-icon-btn.active{
+  color:#000;
+}
+
+.dp-icon-btn svg{
+  width:14px;
+  height:14px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:1.7;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  overflow:visible;
+}
+
+/* CENTER */
+#dp-center{
+  flex:1;
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+#dp-viz,
+#dp-mini-viz{
+  position:absolute;
+  pointer-events:none;
+}
+
+/* BOTTOM */
+#dp-bottom{
+  margin:0 10px 10px;
+  border-radius:14px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.07);
+  padding:8px 11px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-shrink:0;
+}
+
+#dp.light #dp-bottom{
+  background:rgba(0,0,0,.03);
+  border-color:rgba(0,0,0,.07);
+}
+
+#dp-time{
+  font-size:9.5px;
+  color:rgba(255,255,255,.3);
+  min-width:30px;
+  font-family:monospace;
+}
+
+#dp.light #dp-time{
+  color:rgba(0,0,0,.32);
+}
+
+#dp-progress{
+  flex:1;
+  height:3px;
+  border-radius:999px;
+  background:rgba(255,255,255,.09);
+  overflow:hidden;
+  cursor:pointer;
+}
+
+#dp.light #dp-progress{
+  background:rgba(0,0,0,.09);
+}
+
+#dp-progress-fill{
+  width:0%;
+  height:100%;
+  background:rgba(255,255,255,.6);
+  border-radius:999px;
+}
+
+#dp.light #dp-progress-fill{
+  background:rgba(0,0,0,.55);
+}
+
+#dp-play{
+  width:32px;
+  height:32px;
+  border-radius:50%;
+  border:none;
+  cursor:pointer;
+  background:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+}
+
+#dp.light #dp-play{
+  background:#111;
+}
+
+#dp-play svg{
+  width:12px;
+  height:12px;
+  fill:black;
+  stroke:none;
+}
+
+#dp.light #dp-play svg{
+  fill:white;
+}
+
+/* DRAG HANDLE — outside #dp-full so it doesn't overlap controls */
+#dp-drag{
+  position:absolute;
+  bottom:7px;
+  right:9px;
+  display:flex;
+  flex-direction:column;
+  gap:2.5px;
+  cursor:grab;
+  padding:4px;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .2s;
+  z-index:20;
+}
+
+#dp.expanded #dp-drag{
+  opacity:1;
+  pointer-events:auto;
+}
+
+#dp-drag span{
+  display:block;
+  height:1.8px;
+  background:rgba(255,255,255,.22);
+  border-radius:2px;
+}
+
+#dp.light #dp-drag span{
+  background:rgba(0,0,0,.2);
+}
+
+#dp-drag span:nth-child(1){width:13px;}
+#dp-drag span:nth-child(2){width:8px;}
+#dp-drag span:nth-child(3){width:4px;}
+</style>
+
+<!-- MINI -->
+<div id="dp-mini">
+  <canvas id="dp-mini-viz" width="96" height="96"></canvas>
+  <div class="dp-disk" id="mini-disk">
+    <img class="dp-img" id="mini-img" src="/static/yesterday.webp">
+  </div>
 </div>
 
-<!-- 플레이어 제어 및 무선 이어폰 동기화, 호버 드래그 잠금 스크립트 -->
+<!-- FULL -->
+<div id="dp-full">
+
+  <div id="dp-top">
+    <div id="dp-name">YESTERDAY.MP3</div>
+    <div id="dp-top-actions">
+
+      <!-- THEME -->
+      <button class="dp-icon-btn" id="dp-theme-btn" title="테마 전환">
+        <svg id="dp-theme-icon" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="4"/>
+          <line x1="12" y1="2" x2="12" y2="4"/>
+          <line x1="12" y1="20" x2="12" y2="22"/>
+          <line x1="2" y1="12" x2="4" y2="12"/>
+          <line x1="20" y1="12" x2="22" y2="12"/>
+          <line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/>
+          <line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/>
+          <line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/>
+          <line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/>
+        </svg>
+      </button>
+
+      <!-- PIN -->
+      <button class="dp-icon-btn" id="dp-pin-btn" title="고정">
+        <svg viewBox="0 0 24 24">
+          <line x1="12" y1="17" x2="12" y2="22"/>
+          <path d="M5 17h14"/>
+          <path d="M15 5h1a2 2 0 0 1 2 2v1a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4V7a2 2 0 0 1 2-2h1"/>
+          <line x1="12" y1="2" x2="12" y2="5"/>
+        </svg>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div id="dp-center">
+    <canvas id="dp-viz" width="160" height="160"></canvas>
+    <div class="dp-disk" id="big-disk">
+      <img class="dp-img" id="big-img" src="/static/yesterday.webp">
+    </div>
+  </div>
+
+  <!-- BOTTOM -->
+  <div id="dp-bottom">
+    <span id="dp-time">00:00</span>
+    <div id="dp-progress">
+      <div id="dp-progress-fill"></div>
+    </div>
+    <button id="dp-play">
+      <svg id="dp-play-icon" viewBox="0 0 24 24"><path d="M6 4l14 8-14 8V4z"/></svg>
+      <svg id="dp-pause-icon" viewBox="0 0 24 24" style="display:none"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+    </button>
+  </div>
+
+</div>
+
+<!-- DRAG HANDLE: inside #dp but outside #dp-full -->
+<div id="dp-drag">
+  <span></span><span></span><span></span>
+</div>
+
+<audio id="dp-audio" preload="auto">
+  <source src="/static/yesterday.mp3" type="audio/mpeg">
+</audio>
+
+</div>
+
 <script>
-    const audio = document.getElementById('main-audio');
-    const playBtn = document.getElementById('play-btn');
-    const playIcon = document.getElementById('play-icon');
-    const pauseIcon = document.getElementById('pause-icon');
-    const timeDisplay = document.getElementById('music-time');
-    const albumDisk = document.getElementById('album-disk');
-    const progressContainer = document.getElementById('progress-container');
-    const progressBar = document.getElementById('progress-bar');
-    const progressDot = document.getElementById('progress-dot');
-    const player = document.getElementById('draggable-player');
-    const dragHandle = document.getElementById('drag-handle');
-    
-    const pinToggleBtn = document.getElementById('pin-toggle-btn');
-    const pinUnpinnedIcon = document.getElementById('pin-unpinned-icon');
-    const pinPinnedIcon = document.getElementById('pin-pinned-icon');
+(() => {
 
-    audio.volume = 0.5; 
-    let isPinned = false;
+const dp            = document.getElementById('dp');
+const audio         = document.getElementById('dp-audio');
+const miniImg       = document.getElementById('mini-img');
+const bigImg        = document.getElementById('big-img');
 
-    // 통합 UI 상태 동기화 매핑 함수
-    function syncPlayerUI(isPlaying) {
-        if (isPlaying) {
-            playIcon.classList.add('hidden');
-            pauseIcon.classList.remove('hidden');
-            albumDisk.classList.remove('animate-pause');
-        } else {
-            playIcon.classList.remove('hidden');
-            pauseIcon.classList.add('hidden');
-            albumDisk.classList.add('animate-pause');
-        }
+const playBtn       = document.getElementById('dp-play');
+const playIcon      = document.getElementById('dp-play-icon');
+const pauseIcon     = document.getElementById('dp-pause-icon');
+const progress      = document.getElementById('dp-progress');
+const progressFill  = document.getElementById('dp-progress-fill');
+const timeEl        = document.getElementById('dp-time');
+const pinBtn        = document.getElementById('dp-pin-btn');
+const themeBtn      = document.getElementById('dp-theme-btn');
+const themeIcon     = document.getElementById('dp-theme-icon');
+const dragEl        = document.getElementById('dp-drag');
+const vizCanvas     = document.getElementById('dp-viz');
+const miniCanvas    = document.getElementById('dp-mini-viz');
+const vCtx          = vizCanvas.getContext('2d');
+const mCtx          = miniCanvas.getContext('2d');
+
+let pinned    = false;
+let isDragging= false;
+let light     = false;
+let analyser  = null;
+let dataArray = null;
+
+/* ── COLOUR PALETTES ── */
+const darkBars = [
+  [160,210,255],[180,160,255],[120,220,195],
+  [255,195,155],[195,195,255],[140,230,210],
+];
+const lightBars = [
+  [70,130,210],[120,80,200],[20,155,135],
+  [210,110,50],[90,70,195],[50,160,170],
+];
+
+function barRgb(i, n){
+  const arr = light ? lightBars : darkBars;
+  return arr[Math.floor(i / n * arr.length) % arr.length];
+}
+
+/* ── WEB AUDIO (real mp3 source) ── */
+function initAudio(){
+  if(analyser) return;
+  try{
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    const src = ac.createMediaElementSource(audio);
+    analyser = ac.createAnalyser();
+    analyser.fftSize = 512;
+    analyser.smoothingTimeConstant = .85;
+    src.connect(analyser);
+    analyser.connect(ac.destination);
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+    if(ac.state === 'suspended') ac.resume();
+  }catch(e){}
+}
+
+/* ── PLAY / PAUSE ── */
+function syncPlay(state){
+  playIcon.style.display  = state ? 'none' : '';
+  pauseIcon.style.display = state ? '' : 'none';
+  [miniImg, bigImg].forEach(el => {
+    el.classList.toggle('dp-spin',   state);
+    el.classList.toggle('dp-paused', !state);
+  });
+}
+
+playBtn.onclick = () => {
+  initAudio();
+  if(audio.paused){ audio.play(); } else { audio.pause(); }
+};
+
+audio.addEventListener('play',  () => syncPlay(true));
+audio.addEventListener('pause', () => syncPlay(false));
+audio.addEventListener('ended', () => syncPlay(false));
+
+/* ── TIMELINE ── */
+audio.addEventListener('timeupdate', () => {
+  const c = audio.currentTime;
+  const d = audio.duration || 0;
+  progressFill.style.width = (c / d * 100) + '%';
+  timeEl.textContent =
+    String(Math.floor(c / 60)).padStart(2,'0') + ':' +
+    String(Math.floor(c % 60)).padStart(2,'0');
+});
+
+progress.onclick = e => {
+  if(!audio.duration) return;
+  audio.currentTime = (e.offsetX / progress.clientWidth) * audio.duration;
+};
+
+/* ── EXPAND / COLLAPSE ── */
+function expand(){  dp.classList.add('expanded'); }
+function collapse(){
+  if(pinned || isDragging) return;
+  dp.classList.remove('expanded');
+}
+
+document.addEventListener('mousemove', e => {
+  if(isDragging) return;
+  const r = dp.getBoundingClientRect();
+  const inside =
+    e.clientX >= r.left && e.clientX <= r.right &&
+    e.clientY >= r.top  && e.clientY <= r.bottom;
+  inside ? expand() : collapse();
+});
+
+/* ── PIN ── */
+pinBtn.onclick = e => {
+  e.stopPropagation();
+  pinned = !pinned;
+  pinBtn.classList.toggle('active', pinned);
+  if(!pinned) collapse();
+};
+
+/* ── THEME ── */
+const moonSVG = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`;
+const sunSVG  = `
+  <circle cx="12" cy="12" r="4"/>
+  <line x1="12" y1="2" x2="12" y2="4"/>
+  <line x1="12" y1="20" x2="12" y2="22"/>
+  <line x1="2" y1="12" x2="4" y2="12"/>
+  <line x1="20" y1="12" x2="22" y2="12"/>
+  <line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/>
+  <line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/>
+  <line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/>
+  <line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/>
+`;
+
+themeBtn.onclick = () => {
+  light = !light;
+  dp.classList.toggle('light', light);
+  themeIcon.innerHTML = light ? moonSVG : sunSVG;
+};
+
+/* ── DRAG ── */
+let ox = 0, oy = 0;
+
+dragEl.addEventListener('mousedown', e => {
+  isDragging = true;
+  dragEl.style.cursor = 'grabbing';
+  const r  = dp.getBoundingClientRect();
+  ox = e.clientX - r.left;
+  oy = e.clientY - r.top;
+  dp.style.right  = 'auto';
+  dp.style.bottom = 'auto';
+  dp.style.left   = r.left + 'px';
+  dp.style.top    = r.top  + 'px';
+  e.preventDefault();
+  e.stopPropagation();
+});
+
+document.addEventListener('mousemove', e => {
+  if(!isDragging) return;
+  let nx = e.clientX - ox;
+  let ny = e.clientY - oy;
+  nx = Math.max(0, Math.min(nx, window.innerWidth  - dp.offsetWidth));
+  ny = Math.max(0, Math.min(ny, window.innerHeight - dp.offsetHeight));
+  dp.style.left = nx + 'px';
+  dp.style.top  = ny + 'px';
+});
+
+document.addEventListener('mouseup', () => {
+  if(!isDragging) return;
+  isDragging = false;
+  dragEl.style.cursor = 'grab';
+});
+
+/* ── VISUALIZER ── */
+let frame = 0;
+
+function drawRing(ctx, size, isMini){
+  ctx.clearRect(0, 0, size, size);
+  const cx = size / 2, cy = size / 2;
+  const BARS = 60;
+  const expanded = dp.classList.contains('expanded');
+  const R = isMini ? 34 : (expanded ? 66 : 48);
+  const maxAmp = isMini ? 10 : (expanded ? 26 : 11);
+  const isPlaying = analyser && !audio.paused;
+
+  if(isPlaying) analyser.getByteFrequencyData(dataArray);
+
+  for(let i = 0; i < BARS; i++){
+    const angle = (Math.PI * 2 / BARS) * i - Math.PI / 2;
+    let amp = 0;
+
+    if(isPlaying){
+      // [수정 최종 본] 원의 중심을 기준으로 좌우 대칭 인덱싱을 부여하여 사방을 빈틈없이 꽉 채웁니다.
+      const halfBARS = BARS / 2;
+      const symmetricI = i < halfBARS ? i : BARS - 1 - i;
+      
+      const idx = Math.floor((symmetricI / halfBARS) * (dataArray.length * 0.45));
+      amp = Math.pow(dataArray[idx] / 255, 0.65) * maxAmp;
     }
 
-    // 무선 이어폰 및 하드웨어 미디어 세션 연동 연동
-    if ('mediaSession' in navigator) {
-        navigator.mediaSession.metadata = new MediaMetadata({
-            title: 'Yesterday',
-            artist: '내 기술 스택 배경음악'
-        });
-        navigator.mediaSession.setActionHandler('play', () => { audio.play().then(() => syncPlayerUI(true)); });
-        navigator.mediaSession.setActionHandler('pause', () => { audio.pause(); syncPlayerUI(false); });
-    }
+    const x1 = cx + Math.cos(angle) * (R + 1);
+    const y1 = cy + Math.sin(angle) * (R + 1);
+    const x2 = cx + Math.cos(angle) * (R + 1 + amp);
+    const y2 = cy + Math.sin(angle) * (R + 1 + amp);
 
-    // 고정 장치 토글 핸들러
-    pinToggleBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        isPinned = !isPinned;
-        
-        if (isPinned) {
-            player.classList.add('is-pinned');
-            player.classList.remove('player-minimized');
-            pinUnpinnedIcon.classList.add('hidden');
-            pinPinnedIcon.classList.remove('hidden');
-        } else {
-            player.classList.remove('is-pinned');
-            player.classList.add('player-minimized');
-            pinUnpinnedIcon.classList.remove('hidden');
-            pinPinnedIcon.classList.add('hidden');
-        }
-    });
+    const [r, g, b] = barRgb(i, BARS);
+    const baseA = light ? 0.5 : 0.18;
+    const a = isPlaying
+      ? (light ? Math.min(1, 0.5 + amp / 18) : Math.min(1, 0.2 + amp / 22))
+      : (expanded ? baseA : baseA * .5);
 
-    // 60Hz 보정 고성능 드래그 감도 최적화 커널
-    let isDragging = false;
-    let offsetX = 0;
-    let offsetY = 0;
-    let currentX = 0;
-    let currentY = 0;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = `rgba(${r},${g},${b},${a})`;
+    ctx.lineWidth   = isMini ? 1.6 : (expanded ? 2.4 : 1.6);
+    ctx.lineCap     = 'round';
+    ctx.stroke();
+  }
+}
 
-    dragHandle.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        // 💡 드래그가 시작되면 강제로 is-dragging 클래스를 추가해 마우스 포인터 이탈 시 창 닫힘 원천 봉쇄
-        player.classList.add('is-dragging');
-        
-        offsetX = e.clientX - player.getBoundingClientRect().left;
-        offsetY = e.clientY - player.getBoundingClientRect().top;
-        
-        player.style.bottom = 'auto';
-        player.style.right = 'auto';
-        player.style.transition = 'none';
-        
-        currentX = e.clientX - offsetX;
-        currentY = e.clientY - offsetY;
-        
-        requestAnimationFrame(renderDrag);
-        e.preventDefault();
-        e.stopPropagation();
-    });
+function animate(){
+  frame++;
+  drawRing(vCtx, 160, false);
+  drawRing(mCtx, 96,  true);
+  requestAnimationFrame(animate);
+}
+animate();
 
-    document.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        currentX = e.clientX - offsetX;
-        currentY = e.clientY - offsetY;
-    });
-
-    function renderDrag() {
-        if (!isDragging) return;
-        player.style.left = currentX + 'px';
-        player.style.top = currentY + 'px';
-        requestAnimationFrame(renderDrag);
-    }
-
-    document.addEventListener('mouseup', () => {
-        if (!isDragging) return;
-        isDragging = false;
-        // 💡 드래그 해제 시 클래스를 빼주어 정상적인 마우스 호버 축소/확장 메커니즘으로 환원
-        player.classList.remove('is-dragging');
-        player.style.transition = 'width 0.5s ease-in-out, height 0.5s ease-in-out, border-radius 0.5s ease-in-out, aspect-ratio 0.5s ease-in-out, background-color 0.3s, backdrop-filter 0.3s';
-    });
-
-    // 메인 재생 버튼 인터랙션 리스너
-    playBtn.addEventListener('click', () => {
-        if (audio.paused) {
-            audio.play().then(() => syncPlayerUI(true)).catch(error => console.log(error));
-        } else {
-            audio.pause();
-            syncPlayerUI(false);
-        }
-    });
-
-    audio.addEventListener('play', () => syncPlayerUI(true));
-    audio.addEventListener('pause', () => syncPlayerUI(false));
-
-    audio.addEventListener('timeupdate', () => {
-        const current = Math.floor(audio.currentTime);
-        const duration = audio.duration || 0;
-        
-        const min = String(Math.floor(current / 60)).padStart(2, '0');
-        const sec = String(current % 60).padStart(2, '0');
-        timeDisplay.textContent = `${min}:${sec}`;
-
-        if (duration > 0) {
-            const percent = (audio.currentTime / duration) * 100;
-            progressBar.style.width = `${percent}%`;
-            progressDot.style.left = `${percent}%`;
-        }
-    });
-
-    progressContainer.addEventListener('click', (e) => {
-        const width = progressContainer.clientWidth;
-        const clickX = e.offsetX;
-        const duration = audio.duration;
-        if (duration > 0) {
-            audio.currentTime = (clickX / width) * duration;
-        }
-    });
-
-    audio.addEventListener('ended', () => {
-        syncPlayerUI(false);
-        progressBar.style.width = "0%";
-        progressDot.style.left = "0%";
-        timeDisplay.textContent = "00:00";
-    });
+})();
 </script>
+
+</body>
+</html>
