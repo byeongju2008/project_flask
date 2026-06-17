@@ -28,25 +28,32 @@ def send():
     })
 
     next_id += 1
-
     return redirect('/')
 
 @app.route('/delete/<int:item_id>', methods=['POST'])
 def delete(item_id):
+    global next_id
     for item in messages:
         if item["id"] == item_id:
             messages.remove(item)
             break
+            
+    # 개별 삭제 후 데이터가 하나도 남지 않았다면 id를 1로 초기화
+    if not messages:
+        next_id = 1
 
     return redirect('/')
 
 @app.route('/delete_all', methods=['POST'])
 def delete_all():
+    global next_id
     messages.clear()
+    next_id = 1  # 전체 삭제 시 다음 ID를 1로 초기화합니다.
     return redirect('/')
 
 @app.route('/delete_selected', methods=['POST'])
 def delete_selected():
+    global next_id
     selected_ids = request.form.getlist('selected_ids')
     remaining_messages = []
 
@@ -55,16 +62,18 @@ def delete_selected():
             remaining_messages.append(item)
 
     messages.clear()
-
     for item in remaining_messages:
         messages.append(item)
+        
+    # 선택 삭제 후 데이터가 하나도 남지 않았다면 id를 1로 초기화
+    if not messages:
+        next_id = 1
 
     return redirect('/')
 
 @app.route('/edit/<int:item_id>')
 def edit(item_id):
     target_item = None
-
     for item in messages:
         if item["id"] == item_id:
             target_item = item
@@ -78,7 +87,6 @@ def edit(item_id):
 @app.route('/update/<int:item_id>', methods=['POST'])
 def update(item_id):
     target_item = None
-
     for item in messages:
         if item["id"] == item_id:
             target_item = item
