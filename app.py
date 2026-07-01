@@ -1,112 +1,119 @@
 from flask import Flask, render_template, request, redirect
+import sqlite3
 
 app = Flask(__name__)
 
-messages = []
-next_id = 1
+def init_db():
+    conn = sqlite3.connect("skills.db")
+    cur = conn.cursor()
 
-@app.route('/')
-def home():
-    return render_template('index.html', messages=messages)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS skills (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            status TEXT NOT NULL
+        )
+    """)
 
-@app.route('/send', methods=['POST'])
-def send():
-    global next_id
+    conn.commit()
+    conn.close()
 
-    skill = request.form.get('skill', '').strip()
-    level = request.form.get('level', '').strip()
-    status = request.form.get('status', '').strip()
+def get_skills():
+    conn = sqlite3.connect("skills.db")
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
 
-    if not skill or not level or not status:
-        return redirect('/')
+    cur.execute("SELECT * FROM skills ORDER BY id DESC")
+    skills = cur.fetchall()
 
-    messages.append({
-        "id": next_id,
-        "skill": skill,
-        "level": level,
-        "status": status
-    })
+    conn.close()
+    return skills
 
-    next_id += 1
-    return redirect('/')
+def get_skill(skill_id):
+    conn = sqlite3.connect("skills.db")
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
 
-@app.route('/delete/<int:item_id>', methods=['POST'])
-def delete(item_id):
-    global next_id
-    for item in messages:
-        if item["id"] == item_id:
-            messages.remove(item)
-            break
-            
-    # 개별 삭제 후 데이터가 하나도 남지 않았다면 id를 1로 초기화
-    if not messages:
-        next_id = 1
+    cur.execute(
+        "SELECT * FROM skills WHERE id = ?",
+        (skill_id,)
+    )
 
-    return redirect('/')
+    skill = cur.fetchone()
 
-@app.route('/delete_all', methods=['POST'])
-def delete_all():
-    global next_id
-    messages.clear()
-    next_id = 1  # 전체 삭제 시 다음 ID를 1로 초기화합니다.
-    return redirect('/')
+    conn.close()
+    return skill
 
-@app.route('/delete_selected', methods=['POST'])
-def delete_selected():
-    global next_id
-    selected_ids = request.form.getlist('selected_ids')
-    remaining_messages = []
+def add_skill(name, status):
+    conn = sqlite3.connect("skills.db")
+    cur = conn.cursor()
 
-    for item in messages:
-        if str(item["id"]) not in selected_ids:
-            remaining_messages.append(item)
+    cur.execute(
+        "INSERT INTO skills (name, status) VALUES (?, ?)",
+        (name, status)
+    )
 
-    messages.clear()
-    for item in remaining_messages:
-        messages.append(item)
-        
-    # 선택 삭제 후 데이터가 하나도 남지 않았다면 id를 1로 초기화
-    if not messages:
-        next_id = 1
+    conn.commit()
+    conn.close()
 
-    return redirect('/')
+def update_skill(skill_id, name, status):
+    conn = sqlite3.connect("skills.db")
+    cur = conn.cursor()
 
-@app.route('/edit/<int:item_id>')
-def edit(item_id):
-    target_item = None
-    for item in messages:
-        if item["id"] == item_id:
-            target_item = item
-            break
+    cur.execute(
+        "UPDATE skills SET name = ?, status = ? WHERE id = ?",
+        (name, status, skill_id)
+    )
 
-    if target_item is None:
-        return redirect('/')
+    conn.commit()
+    conn.close()
 
-    return render_template('edit.html', item=target_item)
+def delete_skill(skill_id):
+    conn = sqlite3.connect("skills.db")
+    cur = conn.cursor()
 
-@app.route('/update/<int:item_id>', methods=['POST'])
-def update(item_id):
-    target_item = None
-    for item in messages:
-        if item["id"] == item_id:
-            target_item = item
-            break
+    cur.execute(
+        "DELETE FROM skills WHERE id = ?",
+        (skill_id,)
+    )
 
-    if target_item is None:
-        return redirect('/')
+    conn.commit()
+    conn.close()
 
-    skill = request.form.get('skill', '').strip()
-    level = request.form.get('level', '').strip()
-    status = request.form.get('status', '').strip()
+@app.route("/")
+def index():
+    skills = get_skills()
+    return render_template("index.html", skills=skills)
 
-    if not skill or not level or not status:
-        return redirect(f'/edit/{item_id}')
+@app.route("/add", methods=["POST"])
+def add():
+    name = request.form["name"]
+    status = request.form["status"]
 
-    target_item["skill"] = skill
-    target_item["level"] = level
-    target_item["status"] = status
+    add_skill(name, status)
 
-    return redirect('/')
+    return redirect("/")
 
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000, debug=True)
+@app.route("/edit/<int:skill_id>")
+def edit(skill_id):
+    skill = get_skill(skill_id)
+    return render_template("edit.html", skill=skill)
+
+@app.route("/update/<int:skill_id>", methods=["POST"])
+def update(skill_id):
+    name = request.form["name"]
+    status = request.form["status"]
+
+    update_skill(skill_id, name, status)
+
+    return redirect("/")
+
+@app.route("/delete/<int:skill_id>", methods=["POST"])
+def delete(skill_id):
+    delete_skill(skill_id)
+    return redirect("/")
+
+init_db()
+
+if __name__ == "__main__":
+    app.run(debug=True)

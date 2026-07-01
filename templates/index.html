@@ -7,10 +7,10 @@
 <body class="p-8">
     <h1 class="text-2xl font-bold mb-4">내 기술 스택</h1>
 
-    <form action="/send" method="POST" class="mb-6 space-y-2">
+    <form action="/add" method="POST" class="mb-6 space-y-2">
         <input
             type="text"
-            name="skill"
+            name="name"
             placeholder="기술명 예: Python"
             class="border px-3 py-2 rounded w-full"
             required
@@ -18,17 +18,14 @@
         <input
             type="text"
             name="level"
-            placeholder="수준 예: 상, 중, 하"
+            placeholder="수준 예: 상, 중, 하 (가이드라인 기본 테이블에는 제외됨)"
             class="border px-3 py-2 rounded w-full"
-            required
         >
-        <input
-            type="text"
-            name="status"
-            placeholder="상태 예: 공부중, 복습필요, 완료"
-            class="border px-3 py-2 rounded w-full"
-            required
-        >
+        <select name="status" class="border px-3 py-2 rounded w-full" required>
+            <option value="공부중">공부중</option>
+            <option value="복습필요">복습필요</option>
+            <option value="완료">완료</option>
+        </select>
         <button
             type="submit"
             class="bg-blue-500 text-white px-4 py-2 rounded"
@@ -39,49 +36,45 @@
 
     <h2 class="text-xl font-bold mb-3">입력한 데이터</h2>
 
-    <form id="delete-selected-form" action="/delete_selected" method="POST">
-        <div class="space-y-2">
-            {% if messages %}
-                {% for item in messages %}
-                    <div class="border p-3 rounded flex justify-between items-center bg-white">
-                        <div class="flex items-center gap-3">
-                            <input
-                                type="checkbox"
-                                name="selected_ids"
-                                value="{{ item['id'] }}"
-                            >
-                            <div>
-                                <p class="font-bold">
-                                    #{{ item["id"] }} {{ item["skill"] }}
-                                </p>
-                                <p class="text-sm text-gray-600">
-                                    수준: {{ item["level"] }} / 상태: {{ item["status"] }}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="flex gap-2">
-                            <a
-                                href="/edit/{{ item['id'] }}"
-                                class="bg-green-500 text-white px-3 py-1 rounded text-center inline-block"
-                            >
-                                수정
-                            </a>
-                            <button
-                                type="submit"
-                                formaction="/delete/{{ item['id'] }}"
-                                formmethod="POST"
-                                class="bg-red-500 text-white px-3 py-1 rounded"
-                                onclick="return confirm('정말 삭제할까요?')"
-                            >
-                                삭제
-                            </button>
+    <div class="space-y-2">
+        {% if skills %}
+            {% for skill in skills %}
+                <div class="border p-3 rounded flex justify-between items-center bg-white">
+                    <div class="flex items-center gap-3">
+                        <input
+                            type="checkbox"
+                            name="selected_ids"
+                            value="{{ skill['id'] }}"
+                            form="delete-selected-form"
+                        >
+                        <div>
+                            <p class="font-bold">
+                                #{{ skill["id"] }} {{ skill["name"] }}
+                            </p>
+                            <p class="text-sm text-gray-600">
+                                수준: {{ skill["level"] if skill["level"] else 'N/A' }} / 상태: {{ skill["status"] }}
+                            </p>
                         </div>
                     </div>
-                {% endfor %}
-            {% endif %}
-        </div>
-    </form>
+
+                    <div class="flex gap-2">
+                        <a
+                            href="/edit/{{ skill['id'] }}"
+                            class="bg-green-500 text-white px-3 py-1 rounded text-center inline-block"
+                        >
+                            수정
+                        </a>
+                        <form action="/delete/{{ skill['id'] }}" method="post" style="display:inline;"
+                              onsubmit="return confirm('정말 삭제하시겠습니까?');">
+                            <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded">삭제</button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <form id="delete-selected-form" action="/delete_selected" method="POST" class="inline"></form>
 
     <div class="flex gap-2 mt-4">
         <button
@@ -89,19 +82,13 @@
             form="delete-selected-form"
             class="bg-orange-500 text-white px-4 py-2 rounded"
             onclick="return confirm('선택한 데이터를 삭제할까요?')"
-            {% if not messages %} disabled class="opacity-50 cursor-not-allowed bg-orange-500 text-white px-4 py-2 rounded" {% endif %}
+            {% if not skills %} disabled class="opacity-50 cursor-not-allowed bg-orange-500 text-white px-4 py-2 rounded" {% endif %}
         >
             선택 삭제
         </button>
 
-        <form action="/delete_all" method="POST">
-            <button
-                type="submit"
-                class="bg-red-700 text-white px-4 py-2 rounded"
-                onclick="return confirm('모든 데이터를 삭제할까요?')"
-            >
-                전체 삭제
-            </button>
+        <form action="/delete_all" method="post" onsubmit="return confirm('정말 전체 삭제하시겠습니까?');">
+            <button type="submit">전체 삭제</button>
         </form>
     </div>
 

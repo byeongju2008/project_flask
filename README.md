@@ -1,3 +1,57 @@
+## 📅 2026-07-01
+
+### 1. 오늘 만든 기능
+
+- SQLite 설치
+- Flask 프로젝트에 SQLite 연결
+- skills.db 생성
+- skills 테이블 생성
+- SELECT 기능 구현
+- INSERT 기능 구현
+- UPDATE 기능 구현
+- DELETE 기능 구현
+- 기존 리스트 CRUD를 SQLite CRUD로 변경
+- 서버를 종료해도 데이터가 유지되는 구조 완성
+
+### 2. 사용한 문법
+
+- sqlite3
+- import
+- sqlite3.connect()
+- cursor()
+- execute()
+- commit()
+- close()
+- CREATE TABLE
+- SELECT
+- INSERT
+- UPDATE
+- DELETE
+- WHERE
+- fetchall()
+- fetchone()
+- AUTOINCREMENT
+- PRIMARY KEY
+- conn.row_factory
+- sqlite3.Row
+
+### 3. 실행 결과
+
+- skills.db 파일이 생성됨
+- Flask에서 입력한 데이터가 SQLite에 저장됨
+- 서버를 종료해도 데이터가 유지됨
+- 수정 기능이 정상 동작함
+- 삭제 기능이 정상 동작함
+- id가 자동으로 생성됨
+- HTML 화면은 거의 수정하지 않고 SQLite로 변경함
+
+### 4. 어려웠던 점
+
+-
+
+### 5. 추가로 해본 것
+
+-
 # HELLO_FLASK
 ## 📅 2026-05-20
 
